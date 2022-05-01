@@ -1,43 +1,51 @@
-using Infrastructure.Data;
 using Core.Entities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Core.Interfaces;
+using Core.Specifications;
+using API.DTOs;
+using AutoMapper;
 
 namespace API.Controllers
 {
   public class ProductsController : BaseAPIController
   {
-    private readonly IProductRepository _repo;
-
-    public ProductsController(IProductRepository repo)
+    private readonly IUnitOfWork _repo;
+    private readonly IMapper _mapper;
+    public ProductsController(IUnitOfWork repo, IMapper mapper)
     {
+      _mapper = mapper;
       _repo = repo;
-
     }
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<Product>>> GetProducts()
     {
-      var products = await _repo.GetProductsAsync();
+      var spec = new ProductsWithTypesAndBrandsSpecification();
 
-      return Ok(products);
+      var products = await _repo.productsRepo.ListAsync(spec);
+
+      var returnProds = _mapper.Map<IReadOnlyList<Product>, IReadOnlyList<ProductDto>>(products);
+
+      return Ok(returnProds);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetProduct(int id)
+    public async Task<ActionResult<ProductDto>> GetProduct(int id)
     {
-      var product = await _repo.GetProductByIdAsync(id);
+      var spec = new ProductsWithTypesAndBrandsSpecification(id);
+      var product = await _repo.productsRepo.GetEntityWithSpec(spec);
 
       if (product == null) return NotFound("Product does not exist");
 
-      return Ok(product);
+      var returnProd = _mapper.Map<Product, ProductDto>(product);
+
+      return returnProd;
     }
 
     [HttpGet("brands")]
     public async Task<ActionResult<IReadOnlyList<ProductBrand>>> GetProductBrands()
     {
-      var brands = await _repo.GetProductBrandsAsync();
+      var brands = await _repo.productBrandRepo.ListAllAsync();
 
       return Ok(brands);
     }
@@ -45,7 +53,7 @@ namespace API.Controllers
     [HttpGet("types")]
     public async Task<ActionResult<IReadOnlyList<ProductType>>> GetProductTypes()
     {
-      var types = await _repo.GetProductTypesAsync();
+      var types = await _repo.productTypeRepo.ListAllAsync();
 
       return Ok(types);
     }
