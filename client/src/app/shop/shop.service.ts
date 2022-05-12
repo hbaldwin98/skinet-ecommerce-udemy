@@ -61,6 +61,10 @@ export class ShopService implements OnInit {
       );
   }
 
+  getProduct(id: number): Observable<IProduct> {
+    return this.http.get<IProduct>(this.baseUrl + 'products/' + id);
+  }
+
   /**
    * Retrieve the list of brand types from our API.
    *
